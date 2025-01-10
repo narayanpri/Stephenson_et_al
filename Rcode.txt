@@ -1,0 +1,594 @@
+#------------------------------------------------------------------------------
+# Code By: Kory R Johnson
+# Affiliation: NINDS/NIH
+# Contact information: johnsonko@ninds.nih.gov
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Launch Interactive Session
+#------------------------------------------------------------------------------
+
+cd /data/johnsonko/Analysis_Projects/Priyanka_Narayan/Roxan_Stephenson/RNASeq_Analysis_Project_20230418
+
+sinteractive --mem 200g --time 36:00:00 --gres=lscratch:200
+
+#------------------------------------------------------------------------------
+# Load and Launch R
+#------------------------------------------------------------------------------
+
+module load R Rstudio
+rstudio &
+
+#------------------------------------------------------------------------------
+# Set Working Directory
+#------------------------------------------------------------------------------
+
+setwd("/data/johnsonko/Analysis_Projects/Priyanka_Narayan/Roxan_Stephenson/RNASeq_Analysis_Project_20230418")
+
+#------------------------------------------------------------------------------
+# Source Functions
+#------------------------------------------------------------------------------
+
+library(car)
+library(edgeR)
+library(effects)
+library(ggplot2)
+library(gplots)
+library(limma)
+library(multcomp)
+library(multtest)
+library(pheatmap)
+library(rgl)
+library(stats)
+library(stringr)
+
+#------------------------------------------------------------------------------
+# Restore R Session (if needed)
+#------------------------------------------------------------------------------
+
+# load("Rsession_20230418.RData")
+
+#------------------------------------------------------------------------------
+# Import Data
+#------------------------------------------------------------------------------
+
+sample.data <- read.table("count.data.txt",header=TRUE,row.names=1)
+sample.info <- read.table("sample.info.txt",header=TRUE,row.names=1)
+sample.data <- sample.data[,dimnames(sample.info)[[1]]]
+
+#------------------------------------------------------------------------------
+# Perform Within Sample Normalization
+#------------------------------------------------------------------------------
+
+sample.data <- round(sample.data,0)
+within.normalized.data <- cpm(sample.data)
+
+#------------------------------------------------------------------------------
+# Perform Pedestal and Log2 Transformation
+#------------------------------------------------------------------------------
+
+within.normalized.data <- log((within.normalized.data+2),2)
+
+#------------------------------------------------------------------------------
+# Remove Non-Detected Genes
+#------------------------------------------------------------------------------
+
+dim(within.normalized.data)
+temp <- apply(within.normalized.data,1,max)>1
+within.normalized.data <- within.normalized.data[temp,]
+dim(within.normalized.data)
+write.table(within.normalized.data,"within.normalized.data.txt",sep="\t")
+
+#------------------------------------------------------------------------------
+# Generate Cross Sample Box Plot - Post Within Sample Normalization
+#------------------------------------------------------------------------------
+
+col.2.use <- as.character(unlist(sample.info$Color))
+WorkingList <- vector("list", dim(within.normalized.data)[2])
+for ( i in 1:dim(within.normalized.data)[2]) {
+	WorkingList[[i]] <- as.numeric(within.normalized.data[,i])
+}
+names(WorkingList) <- dimnames(sample.info)[[1]]
+par(mar=c(13,5,2,2))
+bp <- boxplot(WorkingList,col=col.2.use,outline=FALSE,ylab="Expression (Log2(CPM+2))",xaxt = "n")
+legend("topright",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS"),col=c("green","red","yellow","orange"),pch=15)
+tick <- seq_along(bp$names)
+axis(1, at = tick, labels = FALSE)
+text(tick+0.25, 0.05,bp$names, pos=2,srt = 45, xpd = TRUE)
+
+#------------------------------------------------------------------------------
+# Perform Across Sample Normalization
+#------------------------------------------------------------------------------
+
+running.normalized <- normalizeBetweenArrays(within.normalized.data,"cyclicloess")
+write.table(running.normalized,"cross.normalized.data.txt",sep="\t")
+
+#------------------------------------------------------------------------------
+# Generate Cross Sample Box Plot - Post Across Normalization
+#------------------------------------------------------------------------------
+
+WorkingList <- vector("list", dim(running.normalized)[2])
+for ( i in 1:dim(running.normalized)[2]) {
+	WorkingList[[i]] <- as.numeric(running.normalized[,i])
+}
+names(WorkingList) <- dimnames(sample.info)[[1]]
+par(mar=c(13,5,2,2))
+bp <- boxplot(WorkingList,col=col.2.use,outline=FALSE,ylab="Expression (CyclicLoess(Log2(CPM+2)))",xaxt = "n")
+legend("topright",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS"),col=c("green","red","yellow","orange"),pch=15)
+tick <- seq_along(bp$names)
+axis(1, at = tick, labels = FALSE)
+text(tick+0.25, -0.25,bp$names, pos=2,srt = 45, xpd = TRUE)
+
+#------------------------------------------------------------------------------
+# Generate PCA Plot Post Across Normalization
+#------------------------------------------------------------------------------
+
+pca.results <- princomp(running.normalized,cor=F)
+pca.loadings <- loadings(pca.results)
+totalvar <- (pca.results$sdev^2)
+variancePer <- round(totalvar/sum(totalvar)*100,1)
+variancePer <- variancePer[1:3]
+palette("default")
+x.range <- range(pca.loadings[,1])
+y.range <- range(pca.loadings[,2])
+xlab <- paste(c("Principal Component 1 (",variancePer[1],"%)"),collapse="")	
+ylab <- paste(c("Principal Component 2 (",variancePer[2],"%)"),collapse="")
+plot(pca.loadings[,1],pca.loadings[,2],type='n',xlab=xlab,ylab=ylab,bg="gray")
+points(pca.loadings[,1],pca.loadings[,2],lwd=0.5,col=col.2.use,cex=2,pch=19,bg=col.2.use)
+points(pca.loadings[,1],pca.loadings[,2],lwd=0.5,col=1,cex=2,pch=21)
+legend("right",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS"),col=c("green","red","yellow","orange"),pch=19)
+
+#-------------------------------------------------------------------------------
+# Perform Noise Modeling
+#-------------------------------------------------------------------------------
+
+group1 <- running.normalized[,sample.info$Group=="APOE3_Untreated"]
+g1.mean <- apply(group1,1,mean)
+g1.sd <- apply(group1,1,sd)
+g1.cv <- (g1.sd/g1.mean)*100
+lowess.g1 <- lowess(g1.cv~g1.mean,f=1/8)
+
+group2 <- running.normalized[,sample.info$Group=="APOE3_LPS"]
+g2.mean <- apply(group2,1,mean)
+g2.sd <- apply(group2,1,sd)
+g2.cv <- (g2.sd/g2.mean)*100
+lowess.g2 <- lowess(g2.cv~g2.mean,f=1/8)
+
+group3 <- running.normalized[,sample.info$Group=="APOE3_OA"]
+g3.mean <- apply(group3,1,mean)
+g3.sd <- apply(group3,1,sd)
+g3.cv <- (g3.sd/g3.mean)*100
+lowess.g3 <- lowess(g3.cv~g3.mean,f=1/8)
+
+group4 <- running.normalized[,sample.info$Group=="APOE3_OA_LPS"]
+g4.mean <- apply(group4,1,mean)
+g4.sd <- apply(group4,1,sd)
+g4.cv <- (g4.sd/g4.mean)*100
+lowess.g4 <- lowess(g4.cv~g4.mean,f=1/8)
+
+#-------------------------------------------------------------------------------
+# Generate Noise Model Plot
+#-------------------------------------------------------------------------------
+
+par(mfrow=c(1,2))
+
+xrange <- range(c(1:16))
+yrange <- range(c(0:100))
+plot(xrange,yrange,type='n',xlab="Mean Expression",ylab="Coefficient of Variation")
+points(g1.mean,g1.cv,pch=21,col=8)
+points(g2.mean,g2.cv,pch=21,col=8)
+points(g3.mean,g3.cv,pch=21,col=8)
+points(g4.mean,g4.cv,pch=21,col=8)
+lines(lowess.g1,col="green",lwd=2)
+lines(lowess.g2,col="red",lwd=2)
+lines(lowess.g3,col="yellow",lwd=2)
+lines(lowess.g4,col="orange",lwd=2)
+abline(h=0)
+box()
+mean.pick <- 1.75
+abline(v=mean.pick,lty=2,lwd=2)
+cv.pick <- 30
+abline(h=cv.pick,lwd=2,lty=2)
+legend("right",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS"),col=c("green","red","yellow","orange"),pch=19)
+
+#-------------------------------------------------------------------------------
+# Remove Noise and Floor
+#-------------------------------------------------------------------------------
+
+dim(running.normalized)
+rrr <- running.normalized
+rrr <- ifelse(rrr<mean.pick,mean.pick,rrr)
+temp <- apply(rrr,1,mean)>mean.pick
+Final.working.data <- rrr[temp,]
+dim(Final.working.data)
+
+g1.cv.f <- g1.cv[dimnames(Final.working.data)[[1]]]
+g2.cv.f <- g2.cv[dimnames(Final.working.data)[[1]]]
+g3.cv.f <- g3.cv[dimnames(Final.working.data)[[1]]]
+g4.cv.f <- g4.cv[dimnames(Final.working.data)[[1]]]
+
+g1.cv.f <- g1.cv.f<cv.pick
+g2.cv.f <- g2.cv.f<cv.pick
+g3.cv.f <- g3.cv.f<cv.pick
+g4.cv.f <- g4.cv.f<cv.pick
+
+cv.x <- cbind(g1.cv.f,g2.cv.f,g3.cv.f,g4.cv.f)
+cv.x <- apply(cv.x,1,sum)
+keepers <- names(cv.x[cv.x==4])
+Final.working.data <- Final.working.data[keepers,]
+dim(Final.working.data)
+
+g1.f.mean <- ifelse(g1.mean<mean.pick,mean.pick,g1.mean)
+g2.f.mean <- ifelse(g2.mean<mean.pick,mean.pick,g2.mean)
+g3.f.mean <- ifelse(g3.mean<mean.pick,mean.pick,g3.mean)
+g4.f.mean <- ifelse(g4.mean<mean.pick,mean.pick,g4.mean)
+
+xrange <- range(c(1:16))
+yrange <- range(c(0:100))
+plot(xrange,yrange,type='n',xlab="Mean Expression",ylab="Coefficient of Variation")
+points(g1.f.mean[keepers],g1.cv[keepers],pch=21,col=8)
+points(g2.f.mean[keepers],g2.cv[keepers],pch=21,col=8)
+points(g3.f.mean[keepers],g3.cv[keepers],pch=21,col=8)
+points(g4.f.mean[keepers],g4.cv[keepers],pch=21,col=8)
+abline(h=0)
+legend("topright",c("To ANOVA Test"),col=8,pch=21)
+box()
+abline(v=mean.pick,lwd=2,lty=2)
+abline(h=cv.pick,lwd=2,lty=2)
+
+write.table(Final.working.data,"Final.working.data.data.txt",sep="\t")
+
+#------------------------------------------------------------------------------
+# Generate PCA Plot Post Noise Filter and Floor
+#------------------------------------------------------------------------------
+
+pca.results <- princomp(Final.working.data,cor=F)
+pca.loadings <- loadings(pca.results)
+totalvar <- (pca.results$sdev^2)
+variancePer <- round(totalvar/sum(totalvar)*100,1)
+variancePer <- variancePer[1:3]
+palette("default")
+x.range <- range(pca.loadings[,1])
+y.range <- range(pca.loadings[,2])
+xlab <- paste(c("Principal Component 1 (",variancePer[1],"%)"),collapse="")	
+ylab <- paste(c("Principal Component 2 (",variancePer[2],"%)"),collapse="")
+plot(pca.loadings[,1],pca.loadings[,2],type='n',xlab=xlab,ylab=ylab,bg="gray")
+points(pca.loadings[,1],pca.loadings[,2],lwd=0.5,col=col.2.use,cex=2,pch=19,bg=col.2.use)
+points(pca.loadings[,1],pca.loadings[,2],lwd=0.5,col=1,cex=2,pch=21)
+legend("right",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS"),col=c("green","red","yellow","orange"),pch=19)
+text(pca.loadings[,1],pca.loadings[,2],as.character(c(1:length(col.2.use))),cex=4)
+
+#-------------------------------------------------------------------------------
+# Remove outlier
+#-------------------------------------------------------------------------------
+
+col.2.use <- col.2.use[-c(2)]
+within.normalized.data <- within.normalized.data[,-c(2)]
+sample.info <- sample.info[-c(2),]
+
+#------------------------------------------------------------------------------
+# REPEAT Perform Across Sample Normalization
+#------------------------------------------------------------------------------
+
+running.normalized <- normalizeBetweenArrays(within.normalized.data,"cyclicloess")
+write.table(running.normalized,"cross.normalized.data.txt",sep="\t")
+
+#------------------------------------------------------------------------------
+# REPEAT Generate Cross Sample Box Plot - Post Across Normalization
+#------------------------------------------------------------------------------
+
+WorkingList <- vector("list", dim(running.normalized)[2])
+for ( i in 1:dim(running.normalized)[2]) {
+	WorkingList[[i]] <- as.numeric(running.normalized[,i])
+}
+names(WorkingList) <- dimnames(sample.info)[[1]]
+par(mar=c(13,5,2,2))
+bp <- boxplot(WorkingList,col=col.2.use,outline=FALSE,ylab="Expression (CyclicLoess(Log2(CPM+2)))",xaxt = "n")
+legend("topright",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS"),col=c("green","red","yellow","orange"),pch=15)
+tick <- seq_along(bp$names)
+axis(1, at = tick, labels = FALSE)
+text(tick+0.25, -0.25,bp$names, pos=2,srt = 45, xpd = TRUE)
+
+#------------------------------------------------------------------------------
+# REPEAT Generate PCA Plot Post Across Normalization
+#------------------------------------------------------------------------------
+
+pca.results <- princomp(running.normalized,cor=F)
+pca.loadings <- loadings(pca.results)
+totalvar <- (pca.results$sdev^2)
+variancePer <- round(totalvar/sum(totalvar)*100,1)
+variancePer <- variancePer[1:3]
+palette("default")
+x.range <- range(pca.loadings[,1])
+y.range <- range(pca.loadings[,2])
+xlab <- paste(c("Principal Component 1 (",variancePer[1],"%)"),collapse="")	
+ylab <- paste(c("Principal Component 2 (",variancePer[2],"%)"),collapse="")
+plot(pca.loadings[,1],pca.loadings[,2],type='n',xlab=xlab,ylab=ylab,bg="gray")
+points(pca.loadings[,1],pca.loadings[,2],lwd=0.5,col=col.2.use,cex=2,pch=19,bg=col.2.use)
+points(pca.loadings[,1],pca.loadings[,2],lwd=0.5,col=1,cex=2,pch=21)
+legend("topright",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS"),col=c("green","red","yellow","orange"),pch=19)
+
+#-------------------------------------------------------------------------------
+# REPEAT Perform Noise Modeling
+#-------------------------------------------------------------------------------
+
+group1 <- running.normalized[,sample.info$Group=="APOE3_Untreated"]
+g1.mean <- apply(group1,1,mean)
+g1.sd <- apply(group1,1,sd)
+g1.cv <- (g1.sd/g1.mean)*100
+lowess.g1 <- lowess(g1.cv~g1.mean,f=1/8)
+
+group2 <- running.normalized[,sample.info$Group=="APOE3_LPS"]
+g2.mean <- apply(group2,1,mean)
+g2.sd <- apply(group2,1,sd)
+g2.cv <- (g2.sd/g2.mean)*100
+lowess.g2 <- lowess(g2.cv~g2.mean,f=1/8)
+
+group3 <- running.normalized[,sample.info$Group=="APOE3_OA"]
+g3.mean <- apply(group3,1,mean)
+g3.sd <- apply(group3,1,sd)
+g3.cv <- (g3.sd/g3.mean)*100
+lowess.g3 <- lowess(g3.cv~g3.mean,f=1/8)
+
+group4 <- running.normalized[,sample.info$Group=="APOE3_OA_LPS"]
+g4.mean <- apply(group4,1,mean)
+g4.sd <- apply(group4,1,sd)
+g4.cv <- (g4.sd/g4.mean)*100
+lowess.g4 <- lowess(g4.cv~g4.mean,f=1/8)
+
+#-------------------------------------------------------------------------------
+# REPEAT Generate Noise Model Plot
+#-------------------------------------------------------------------------------
+
+par(mfrow=c(1,2))
+
+xrange <- range(c(1:16))
+yrange <- range(c(0:100))
+plot(xrange,yrange,type='n',xlab="Mean Expression",ylab="Coefficient of Variation")
+points(g1.mean,g1.cv,pch=21,col=8)
+points(g2.mean,g2.cv,pch=21,col=8)
+points(g3.mean,g3.cv,pch=21,col=8)
+points(g4.mean,g4.cv,pch=21,col=8)
+lines(lowess.g1,col="green",lwd=2)
+lines(lowess.g2,col="red",lwd=2)
+lines(lowess.g3,col="yellow",lwd=2)
+lines(lowess.g4,col="orange",lwd=2)
+abline(h=0)
+box()
+mean.pick <- 1.75
+abline(v=mean.pick,lty=2,lwd=2)
+cv.pick <- 30
+abline(h=cv.pick,lwd=2,lty=2)
+legend("topright",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS","Mean Threshold","CV Threshold"),col=c("green","red","yellow","orange","black","black"),lty=c(1,1,1,1,2,2),lwd=2)
+
+#-------------------------------------------------------------------------------
+# REPEAT Remove Noise and Floor
+#-------------------------------------------------------------------------------
+
+dim(running.normalized)
+rrr <- running.normalized
+rrr <- ifelse(rrr<mean.pick,mean.pick,rrr)
+temp <- apply(rrr,1,mean)>mean.pick
+Final.working.data <- rrr[temp,]
+dim(Final.working.data)
+
+g1.cv.f <- g1.cv[dimnames(Final.working.data)[[1]]]
+g2.cv.f <- g2.cv[dimnames(Final.working.data)[[1]]]
+g3.cv.f <- g3.cv[dimnames(Final.working.data)[[1]]]
+g4.cv.f <- g4.cv[dimnames(Final.working.data)[[1]]]
+
+g1.cv.f <- g1.cv.f<cv.pick
+g2.cv.f <- g2.cv.f<cv.pick
+g3.cv.f <- g3.cv.f<cv.pick
+g4.cv.f <- g4.cv.f<cv.pick
+
+cv.x <- cbind(g1.cv.f,g2.cv.f,g3.cv.f,g4.cv.f)
+cv.x <- apply(cv.x,1,sum)
+keepers <- names(cv.x[cv.x==4])
+Final.working.data <- Final.working.data[keepers,]
+dim(Final.working.data)
+
+g1.f.mean <- ifelse(g1.mean<mean.pick,mean.pick,g1.mean)
+g2.f.mean <- ifelse(g2.mean<mean.pick,mean.pick,g2.mean)
+g3.f.mean <- ifelse(g3.mean<mean.pick,mean.pick,g3.mean)
+g4.f.mean <- ifelse(g4.mean<mean.pick,mean.pick,g4.mean)
+
+xrange <- range(c(1:16))
+yrange <- range(c(0:100))
+plot(xrange,yrange,type='n',xlab="Mean Expression",ylab="Coefficient of Variation")
+points(g1.f.mean[keepers],g1.cv[keepers],pch=21,col=8)
+points(g2.f.mean[keepers],g2.cv[keepers],pch=21,col=8)
+points(g3.f.mean[keepers],g3.cv[keepers],pch=21,col=8)
+points(g4.f.mean[keepers],g4.cv[keepers],pch=21,col=8)
+abline(h=0)
+legend("topright",c("To ANOVA Test"),col=8,pch=21)
+box()
+abline(v=mean.pick,lwd=2,lty=2)
+abline(h=cv.pick,lwd=2,lty=2)
+
+write.table(Final.working.data,"Final.working.data.data.txt",sep="\t")
+
+#------------------------------------------------------------------------------
+# REPEAT Generate PCA Plot Post Noise Filter and Floor
+#------------------------------------------------------------------------------
+
+pca.results <- princomp(Final.working.data,cor=F)
+pca.loadings <- loadings(pca.results)
+totalvar <- (pca.results$sdev^2)
+variancePer <- round(totalvar/sum(totalvar)*100,1)
+variancePer <- variancePer[1:3]
+palette("default")
+x.range <- range(pca.loadings[,1])
+y.range <- range(pca.loadings[,2])
+xlab <- paste(c("Principal Component 1 (",variancePer[1],"%)"),collapse="")	
+ylab <- paste(c("Principal Component 2 (",variancePer[2],"%)"),collapse="")
+plot(pca.loadings[,1],pca.loadings[,2],type='n',xlab=xlab,ylab=ylab,bg="gray")
+points(pca.loadings[,1],pca.loadings[,2],lwd=0.5,col=col.2.use,cex=2,pch=19,bg=col.2.use)
+points(pca.loadings[,1],pca.loadings[,2],lwd=0.5,col=1,cex=2,pch=21)
+legend("topright",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS"),col=c("green","red","yellow","orange"),pch=19)
+
+#-------------------------------------------------------------------------------
+# Perform ANOVA
+#-------------------------------------------------------------------------------
+
+running.pvs <- NULL
+for (i in 1:dim(Final.working.data)[1]) {
+	print(i)
+	probe.data <- as.numeric(unlist(Final.working.data[i,]))
+	temp <- data.frame(DATA=probe.data,GROUP=factor(sample.info$Group))
+	aov.results <- aov(DATA~GROUP,data=temp)
+	if (deviance(aov.results ) > sqrt(.Machine$double.eps)) {
+		temp <- Anova(aov.results,type="III",singular.ok=TRUE)
+		temp <- summary(aov.results)
+		temp <- as.numeric(unlist(temp))[9]
+		running.pvs <- rbind(running.pvs,temp)
+	} else {
+		running.pvs <- rbind(running.pvs,1)
+	}
+}
+names(running.pvs) <- dimnames(Final.working.data)[[1]]
+running.pvs.out <- cbind(running.pvs,running.pvs)
+dimnames(running.pvs.out)[[1]] <- dimnames(Final.working.data)[[1]]
+write.table(running.pvs.out,"ANOVA_Results.txt",sep="\t",row.names=T)
+
+#-------------------------------------------------------------------------------
+# FDR MCC (alpha=0.05)
+#-------------------------------------------------------------------------------
+
+temp1 <- mt.rawp2adjp(running.pvs, proc="BH")
+temp2 <- temp1$adj[order(temp1$index),]
+temp2 <- as.data.frame(temp2)
+dimnames(temp2)[[1]] <- names(running.pvs)
+mcc.results <- temp2
+write.table(mcc.results,"MCC_Results.txt",sep="\t")
+
+passing.mcc.frags <- dimnames(mcc.results[mcc.results[,2]<0.05,])[[1]]
+
+group1 <- Final.working.data[,sample.info$Group=="APOE3_Untreated"]
+g1.mean <- apply(group1,1,mean)
+
+group2 <- Final.working.data[,sample.info$Group=="APOE3_LPS"]
+g2.mean <- apply(group2,1,mean)
+
+group3 <- Final.working.data[,sample.info$Group=="APOE3_OA"]
+g3.mean <- apply(group3,1,mean)
+
+group4 <- Final.working.data[,sample.info$Group=="APOE3_OA_LPS"]
+g4.mean <- apply(group4,1,mean)
+
+means.2.export <- cbind(g1.mean,g2.mean,g3.mean,g4.mean)
+dimnames(means.2.export)[[2]] <- unique(sample.info$Group)
+write.table(means.2.export,"Group_Means.txt",sep="\t")
+
+#-------------------------------------------------------------------------------
+# Perform Pos-Hoc Testing
+#-------------------------------------------------------------------------------
+
+posthoc.data <- Final.working.data[passing.mcc.frags,]
+running.posthoc <- NULL
+running.diffs <- NULL
+for (i in 1:dim(posthoc.data)[1]) {
+	print(i)
+	print(dim(posthoc.data)[1])
+	temp1 <- as.numeric(posthoc.data[i,])
+	temp2 <- data.frame(DATA=temp1,Class=factor(sample.info$Group))
+	temp3 <- aov(DATA~Class,data=temp2)
+	temp4 <- TukeyHSD(temp3)
+	temp5 <- temp4[[1]]
+	temp6 <- temp5[,4]
+	running.posthoc <- rbind(running.posthoc,temp6)
+	temp7 <- temp5[,1]
+	running.diffs <- rbind(running.diffs,temp7)
+}
+running.posthoc <- as.data.frame(running.posthoc)
+dimnames(running.posthoc)[[1]] <- dimnames(posthoc.data)[[1]]
+coded.running.posthoc <- ifelse(running.posthoc<0.05,1,0)
+running.diffs <- as.data.frame(running.diffs)
+dimnames(running.diffs)[[1]] <- dimnames(posthoc.data)[[1]]
+running.diffs <- as.matrix(running.diffs)
+linear.running.diffs <- 2^running.diffs
+linear.running.diffs <- ifelse(linear.running.diffs<1,-1/linear.running.diffs,linear.running.diffs)
+coded.linear.running.diffs <- ifelse(abs(linear.running.diffs)>=1.5,1,0)
+
+#-------------------------------------------------------------------------------
+# Differential Selection
+#-------------------------------------------------------------------------------
+
+cx <- coded.linear.running.diffs+coded.running.posthoc
+cx <- ifelse(cx==2,1,0)
+summary.cx <- apply(cx,2,sum)
+write.table(summary.cx,"differential_selection_summary.txt",sep="\t")
+keepers <- dimnames(coded.linear.running.diffs)[[1]][apply(cx,1,max)>0]
+length(keepers)
+
+#-------------------------------------------------------------------------------
+# Output Testing and Selection Results
+#-------------------------------------------------------------------------------
+
+a <- means.2.export[dimnames(running.posthoc)[[1]],]
+b <- running.posthoc[dimnames(running.posthoc)[[1]],]
+c <- linear.running.diffs[dimnames(running.posthoc)[[1]],]
+d <- cx[dimnames(running.posthoc)[[1]],]
+e <- mcc.results[dimnames(running.posthoc)[[1]],]
+f <- cbind(a,e,b,c,d)
+write.table(f,"post_hoc_testing_results.txt",sep="\t")
+
+#------------------------------------------------------------------------------
+# Generate PCA Plot Post Differential Selection
+#------------------------------------------------------------------------------
+
+par(mfrow=c(1,2))
+
+pca.results <- princomp(Final.working.data[keepers,],cor=F)
+pca.loadings <- loadings(pca.results)
+totalvar <- (pca.results$sdev^2)
+variancePer <- round(totalvar/sum(totalvar)*100,1)
+variancePer <- variancePer[1:3]
+palette("default")
+x.range <- range(pca.loadings[,1])
+y.range <- range(pca.loadings[,2])
+xlab <- paste(c("Principal Component 1 (",variancePer[1],"%)"),collapse="")	
+ylab <- paste(c("Principal Component 2 (",variancePer[2],"%)"),collapse="")
+plot(pca.loadings[,1],pca.loadings[,2],type='n',xlab=xlab,ylab=ylab,bg="gray")
+points(pca.loadings[,1],pca.loadings[,2],lwd=0.5,col=col.2.use,cex=2,pch=19,bg=col.2.use)
+points(pca.loadings[,1],pca.loadings[,2],lwd=0.5,col=1,cex=2,pch=21)
+abline(h=0,lty=2,lwd=2)
+legend("topright",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS"),col=c("green","red","yellow","orange"),pch=19)
+
+x.range <- range(pca.loadings[,2])
+y.range <- range(pca.loadings[,3])
+xlab <- paste(c("Principal Component 2 (",variancePer[2],"%)"),collapse="")	
+ylab <- paste(c("Principal Component 3 (",variancePer[3],"%)"),collapse="")
+plot(pca.loadings[,2],pca.loadings[,3],type='n',xlab=xlab,ylab=ylab,bg="gray")
+points(pca.loadings[,2],pca.loadings[,3],lwd=0.5,col=col.2.use,cex=2,pch=19,bg=col.2.use)
+points(pca.loadings[,2],pca.loadings[,3],lwd=0.5,col=1,cex=2,pch=21)
+abline(h=0,lty=2,lwd=2)
+abline(v=0,lty=2,lwd=2)
+legend("top",c("APOE3_untreated","APOE3_LPS","APOE3_OA","APOE3_OA_LPS"),col=c("green","red","yellow","orange"),pch=19)
+
+#------------------------------------------------------------------------------
+# Generate Clustered Heat Map Plots Post Differential Selection
+#------------------------------------------------------------------------------
+
+cdat <- cor(a)
+
+my_colour = list(Group = c('APOE3_Untreated' = "green",
+			    'APOE3_LPS' = "red",
+			    'APOE3_OA' = "yellow",
+			    'APOE3_OA_LPS' = "orange"))
+
+my_sample_col <- data.frame(Group = dimnames(a)[[2]])
+
+row.names(my_sample_col) <- dimnames(a)[[2]]
+
+my_sample_col$Group <- factor(my_sample_col$Group, levels = dimnames(a)[[2]])
+
+pheatmap(cdat,annotation_colors=my_colour,annotation_col=my_sample_col,cellwidth=40,cellheight=40,annotation_row=my_sample_col)
+
+pheatmap(a,annotation_colors=my_colour,annotation_col=my_sample_col,cellwidth=20,cellheight=0.07,show_rownames=F,show_colnames=F,scale="row")
+
+#------------------------------------------------------------------------------
+# Save R Session
+#------------------------------------------------------------------------------
+
+save.image("Rsession_20230418.RData")
