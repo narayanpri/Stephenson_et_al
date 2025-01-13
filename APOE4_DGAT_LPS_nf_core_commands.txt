@@ -1,0 +1,196 @@
+######################################
+# clean out cache
+######################################
+
+rm -rf /home/johnsonko/.singularity/cache
+
+######################################
+# unbury files
+######################################
+
+cd APOE3_RSC1
+mv * ..
+cd ../APOE3_RSC2
+mv * ..
+cd ../APOE3_RSC3
+mv * ..
+cd ../APOE3_RSC4
+mv * ..
+cd ../APOE3_RSC5
+mv * ..
+cd ../APOE3_RSC6
+mv * ..
+cd ../APOE3_RSC7
+mv * ..
+cd ../APOE3_RSC8
+mv * ..
+cd ../APOE4_RSC1
+mv * ..
+cd ../APOE4_RSC10
+mv * ..
+cd ../APOE4_RSC11
+mv * ..
+cd ../APOE4_RSC12
+mv * ..
+cd ../APOE4_RSC13
+mv * ..
+cd ../APOE4_RSC14
+mv * ..
+cd ../APOE4_RSC2
+mv * ..
+cd ../APOE4_RSC3
+mv * ..
+cd ../APOE4_RSC4
+mv * ..
+cd ../APOE4_RSC5
+mv * ..
+cd ../APOE4_RSC6
+mv * ..
+cd ../APOE4_RSC7
+mv * ..
+cd ../APOE4_RSC8
+mv * ..
+cd ../APOE4_RSC9
+mv * ..
+cd ..
+
+rm -rf APOE4*
+
+######################################
+# generate fastqc fastq_screen reports per fastq file
+######################################
+
+vi qc.swarm
+
+fastqc ./HLH5KDSX5_19441656_S52_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441656_S52_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441656_S52_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441656_S52_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441658_S69_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441658_S69_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441658_S69_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441658_S69_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441660_S45_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441660_S45_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441660_S45_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441660_S45_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441662_S56_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441662_S56_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441662_S56_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441662_S56_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441664_S47_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441664_S47_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441664_S47_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441664_S47_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441666_S64_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441666_S64_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441666_S64_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441666_S64_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441668_S46_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441668_S46_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441668_S46_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441668_S46_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441670_S43_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441670_S43_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441670_S43_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441670_S43_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441672_S51_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441672_S51_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441672_S51_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441672_S51_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441674_S73_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441674_S73_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441674_S73_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441674_S73_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441676_S44_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441676_S44_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441676_S44_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441676_S44_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441678_S66_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441678_S66_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441678_S66_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441678_S66_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441680_S65_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441680_S65_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441680_S65_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441680_S65_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441682_S53_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441682_S53_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441682_S53_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441682_S53_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441684_S41_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441684_S41_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441684_S41_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441684_S41_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441686_S59_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441686_S59_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441686_S59_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441686_S59_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441688_S60_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441688_S60_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441688_S60_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441688_S60_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441690_S58_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441690_S58_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441690_S58_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441690_S58_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441692_S61_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441692_S61_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441692_S61_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441692_S61_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441694_S63_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441694_S63_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441694_S63_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441694_S63_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441696_S54_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441696_S54_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441696_S54_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441696_S54_L004_R2_001.fastq.gz
+fastqc ./HLH5KDSX5_19441698_S55_L004_R1_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441698_S55_L004_R1_001.fastq.gz
+fastqc ./HLH5KDSX5_19441698_S55_L004_R2_001.fastq.gz ; fastq_screen ./HLH5KDSX5_19441698_S55_L004_R2_001.fastq.gz
+
+chmod 755 qc.swarm
+
+swarm -f qc.swarm -g 10 --module fastqc,fastq_screen
+
+rm swarm* 
+
+##########################
+# generate multiqc report
+##########################
+
+chmod 755 *
+
+mkdir primary_fastq_look
+
+mv *.html primary_fastq_look/
+mv *screen.txt primary_fastq_look/
+mv *.zip primary_fastq_look/
+mv *.png primary_fastq_look/
+
+vi multiqc.swarm
+
+multiqc --title \'primary_multiqc_look\' ./primary_fastq_look
+
+chmod 755 multiqc.swarm
+
+swarm -f multiqc.swarm -g 10 --module multiqc
+
+mkdir primary_multiqc_look
+mv primary_multiqc_look* primary_multiqc_look
+
+rm swarm* 
+
+scp -vr primary_* johnsonko@nindsdirbis7.ninds.nih.gov:/shares/BIS/PI/Kory_Johnson_and_Amar_Yavatkar/Priyanka_Narayan/Roxan_Stephenson/20230328_RS_RNAseq/Kory_Analysis/1_nf_core_preprocess_map_enumerate
+
+##########################
+# prepare sample sheet
+##########################
+
+vi sample.sheet.csv 
+
+sample,fastq_1,fastq_2,strandedness
+APOE4_untreated_REP1,HLH5KDSX5_19441656_S52_L004_R1_001.fastq.gz,HLH5KDSX5_19441656_S52_L004_R2_001.fastq.gz,reverse
+APOE4_untreated_REP2,HLH5KDSX5_19441658_S69_L004_R1_001.fastq.gz,HLH5KDSX5_19441658_S69_L004_R2_001.fastq.gz,reverse
+APOE4_untreated_REP3,HLH5KDSX5_19441660_S45_L004_R1_001.fastq.gz,HLH5KDSX5_19441660_S45_L004_R2_001.fastq.gz,reverse
+APOE4_LPS_REP1,HLH5KDSX5_19441662_S56_L004_R1_001.fastq.gz,HLH5KDSX5_19441662_S56_L004_R2_001.fastq.gz,reverse
+APOE4_LPS_REP2,HLH5KDSX5_19441664_S47_L004_R1_001.fastq.gz,HLH5KDSX5_19441664_S47_L004_R2_001.fastq.gz,reverse
+APOE4_LPS_REP3,HLH5KDSX5_19441666_S64_L004_R1_001.fastq.gz,HLH5KDSX5_19441666_S64_L004_R2_001.fastq.gz,reverse
+APOE4_LPS_REP4,HLH5KDSX5_19441668_S46_L004_R1_001.fastq.gz,HLH5KDSX5_19441668_S46_L004_R2_001.fastq.gz,reverse
+APOE4_DGAT_1_2_inh_REP1,HLH5KDSX5_19441670_S43_L004_R1_001.fastq.gz,HLH5KDSX5_19441670_S43_L004_R2_001.fastq.gz,reverse
+APOE4_DGAT_1_2_inh_REP2,HLH5KDSX5_19441672_S51_L004_R1_001.fastq.gz,HLH5KDSX5_19441672_S51_L004_R2_001.fastq.gz,reverse
+APOE4_DGAT_1_2_inh_REP3,HLH5KDSX5_19441674_S73_L004_R1_001.fastq.gz,HLH5KDSX5_19441674_S73_L004_R2_001.fastq.gz,reverse
+APOE4_DGAT_1_2_inh_REP4,HLH5KDSX5_19441676_S44_L004_R1_001.fastq.gz,HLH5KDSX5_19441676_S44_L004_R2_001.fastq.gz,reverse
+APOE4_DGAT_1_2_inh_LPS_REP1,HLH5KDSX5_19441678_S66_L004_R1_001.fastq.gz,HLH5KDSX5_19441678_S66_L004_R2_001.fastq.gz,reverse
+APOE4_DGAT_1_2_inh_LPS_REP2,HLH5KDSX5_19441680_S65_L004_R1_001.fastq.gz,HLH5KDSX5_19441680_S65_L004_R2_001.fastq.gz,reverse
+APOE4_DGAT_1_2_inh_LPS_REP3,HLH5KDSX5_19441682_S53_L004_R1_001.fastq.gz,HLH5KDSX5_19441682_S53_L004_R2_001.fastq.gz,reverse
+APOE3_untreated_REP1,HLH5KDSX5_19441684_S41_L004_R1_001.fastq.gz,HLH5KDSX5_19441684_S41_L004_R2_001.fastq.gz,reverse
+APOE3_untreated_REP2,HLH5KDSX5_19441686_S59_L004_R1_001.fastq.gz,HLH5KDSX5_19441686_S59_L004_R2_001.fastq.gz,reverse
+APOE3_untreated_REP3,HLH5KDSX5_19441688_S60_L004_R1_001.fastq.gz,HLH5KDSX5_19441688_S60_L004_R2_001.fastq.gz,reverse
+APOE3_untreated_REP4,HLH5KDSX5_19441690_S58_L004_R1_001.fastq.gz,HLH5KDSX5_19441690_S58_L004_R2_001.fastq.gz,reverse
+APOE3_LPS_REP1,HLH5KDSX5_19441692_S61_L004_R1_001.fastq.gz,HLH5KDSX5_19441692_S61_L004_R2_001.fastq.gz,reverse
+APOE3_LPS_REP2,HLH5KDSX5_19441694_S63_L004_R1_001.fastq.gz,HLH5KDSX5_19441694_S63_L004_R2_001.fastq.gz,reverse
+APOE3_LPS_REP3,HLH5KDSX5_19441696_S54_L004_R1_001.fastq.gz,HLH5KDSX5_19441696_S54_L004_R2_001.fastq.gz,reverse
+APOE3_LPS_REP4,HLH5KDSX5_19441698_S55_L004_R1_001.fastq.gz,HLH5KDSX5_19441698_S55_L004_R2_001.fastq.gz,reverse
+
+:wq!
+
+chmod 755 sample.sheet.csv
+
+##########################
+# run nf-core rna-seq pipeline
+# https://nf-co.re/rnaseq
+# https://github.com/nf-core/configs/blob/master/docs/nihbiowulf.md
+##########################
+
+cp /usr/local/apps/nextflow/nextflow.config .
+
+chmod 755 nextflow.config
+
+vi nf_core_rnaseq_go.swarm
+
+nextflow run nf-core/rnaseq -r 3.10.1 --input sample.sheet.csv --clip_r1 10 --clip_r2 10 --outdir . --fasta /fdb/igenomes/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa --gtf /fdb/igenomes/Homo_sapiens/UCSC/hg38/Annotation/Genes/genes.gtf --save_reference -profile biowulf
+
+:wq!
+
+chmod 755 nf_core_rnaseq_go.swarm
+
+swarm -f nf_core_rnaseq_go.swarm -g 100 --gres=lscratch:300 --time 24:00:00 --module nextflow,singularity
